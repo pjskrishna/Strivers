@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="{% static 'https://fonts.googleapis.com' %}">
+	<link rel="preconnect" href="{% static 'https://fonts.gstatic.com' %}" crossorigin>
+	<link href="{% static 'https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap' %}" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css' %}"> 
+	<link rel="stylesheet" href="{% static 'https://unicons.iconscout.com/release/v4.0.0/css/line.css' %}">
+    <title>JobSeeker | Signup</title>
+	
+
+</head>
+<body>
+
+	{% include 'base.html' %}
+
+
+    <div class="row">
+
+        <!-- <div class="column"> -->
+
+          {% for job in job_data %} 
+            <form method="POST" action="remove_job">
+
+              {%csrf_token%}
+            <div class="middle">
+              <a href="{{job.jobdetailurl}}" class="card_link">
+
+                <div class="card">
+                    <!-- <h2>{{job.company_name}}</h2> -->
+                    <h3>{{job.jobtitle}}</h3>
+                    <!-- <h3>{{job.location}}</h3> -->
+                    
+                    <input type="hidden" id="title" value="{{job.jobtitle}}" name="title">
+          
+                  
+                  <input type="submit" 
+                  style="background-color: black; color:#ccc ;    width:100%" 
+                  value="Remove">
+                  
+          
+                </div>
+              </a>
+            </div>
+
+            </form>
+          {% endfor %}
+        <!-- </div> -->
+    </div>
+  
+	
+</body>
+</html>

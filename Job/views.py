@@ -1,0 +1,193 @@
+from django.shortcuts import render
+from django.http import HttpResponse
+import requests
+from bs4 import BeautifulSoup as bs
+from django.shortcuts import render
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User,auth
+from urllib3 import HTTPResponse
+from .forms import SignUpForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib import messages
+from django.shortcuts import render,redirect, HttpResponseRedirect
+
+from .  models import SearchDetails,UpdateDetails,JobDetails
+
+# Create your views here.
+
+def index(request):
+    if request.method == 'POST':
+        search = request.POST['search']
+        user = request.POST['user']
+        # siteurl = request.POST.get['sit   eurl']
+        print(search)
+        print(user)
+        search_data=SearchDetails.objects.filter(username=user,search=search)
+        if not search_data:
+            data = SearchDetails(
+                search=search,
+                username=user,
+            )
+            data.save()
+
+        url = "https://internshala.com/jobs/" + search + '-jobs'
+        print(url)
+
+        req = requests.get(url)
+        soup = bs(req.text,"html.parser")
+
+        header_data = soup.find_all('div',class_="individual_internship_header")
+        job_data= soup.find_all('div',class_="individual_internship_details individual_internship_job")
+
+        job_title_fun = []
+        job_company_fun=[]
+        job_durl_fun = []
+        # job_exp_fun=[]
+        # job_salary_fun=[]
+        job_location_fun=[]
+
+        for h_data in header_data:
+            
+            # j_url=h_data.div.div.get('href')
+            j_url = h_data.div.h3.a.get('href')
+            job_durl_fun.append("https://internshala.com"+j_url)
+           
+            print(j_url)
+            print(job_durl_fun)
+
+            # title = h_data.div.div.a.text
+            title = h_data.div.h3.text
+            job_title_fun.append(title)
+            print(title)
+            c_name = h_data.find('div',class_="company").h4.text
+            job_company_fun.append(c_name)
+            print(c_name)
+
+
+            
+        for j_data in job_data:
+            #location=j_data.p.a.text
+            location = j_data.p.span.text
+            job_location_fun.append(location)
+            print(location)
+
+
+        total_div=len(job_title_fun)
+        update_data=UpdateDetails.objects.filter(search=search)
+        if not update_data:
+            data=UpdateDetails(search=search,total_div=total_div)
+            data.save()
+        else:
+            if update_data[0].total_div != total_div :
+                update_data[0].total_div=total_div
+                update_data[0].save()
+
+        job_detail_list = zip(job_title_fun,job_company_fun,job_durl_fun,job_location_fun)
+        context = {
+            'job_detail_list':job_detail_list
+        }
+
+
+        return render(request,'index.html',context)
+
+    # elif siteurl=="https://www.techgig.com/jobs/":
+    #     return (request,'index.html',context)
+    return render(request,'index.html')
+
+
+def user_login(request):
+    if request.method == "POST":
+        fm = AuthenticationForm(request=request, data=request.POST)
+        if fm.is_valid():
+            uname = fm.cleaned_data['username']
+            upass = fm.cleaned_data['password']
+            user = authenticate(username=uname, password=upass) 
+            if user is not None:
+                login(request, user)
+                return redirect('/')
+            messages.error(request,"Login Failed!! Please enter correct credentials :) ")
+    else:            
+        fm = AuthenticationForm()
+    return render(request, 'accounts/login.html',{'form':fm})
+
+
+
+
+def user_register(request):
+    if request.method == "POST":
+        form = SignUpForm(request.POST)
+        #print("int post");
+        if form.is_valid():
+            form.save() 
+            messages.success(request, 'Account created Successfully!')
+            #print("fm.save()")
+            # return render(request, 'accounts/login.html',{'form':form}) 
+            return redirect('login')
+        else:
+            return render(request, 'accounts/signup.html', {'form': form})
+
+    else:
+        form = SignUpForm()
+        return render(request, 'accounts/signup.html',{'form':form})
+
+def user_logout(request):
+    auth.logout(request)
+    return redirect('login')
+
+
+
+def add_job(request):
+    # if request.method == 'POST':
+        url = request.POST['url']
+        title=request.POST['title']
+        username = request.user
+        
+        job = JobDetails.objects.filter(username=username,jobdetailurl=url)
+        print(job)
+        if not job:
+            job_detail = JobDetails(
+            username=username,
+            jobdetailurl=url,
+            jobtitle=title,
+            )
+            job_detail.save()
+            data = JobDetails.objects.filter(username=username)
+            context={
+                'message' :"added successfully "+title,
+                'job_data':data
+            }
+            return render(request,'job.html',context)
+
+        else:
+            data = JobDetails.objects.filter(username=username)
+            context={
+                'message' : "Already Added "+title,
+                'job_data':data
+            }
+            return render(request,'job.html',context)
+
+
+
+def show_jobs(request):
+    username=request.user
+    data = JobDetails.objects.filter(username=username)
+    context={
+        'job_data':data
+    }
+    return render(request,'job.html')
+
+
+def remove_job(request):
+    username=request.user
+    jobtitle = request.POST['jobtitle']
+
+    data=JobDetails.objects.filter(username=username,jobtitle=jobtitle)
+    data.delete()
+
+    return render(request,'job.html')
+
+
+def contactus(request):
+    #return redirect('contactus')
+    return render(request,'contactus.html')
